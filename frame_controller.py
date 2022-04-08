@@ -6,6 +6,7 @@ from frames.patient_frame import PatientFrame
 from frames.medical_record_frame import MedicalRecordFrame
 from frames.doc_registration_frame import DocRegistrationFrame
 from frames.patient_registration_frame import PatientRegistrationFrame
+from frames.back_up_frame import BackUpFrame
 from utils import *
 
 
@@ -75,6 +76,7 @@ class FrameController:
         self.patient_registration_frame = PatientRegistrationFrame(self.root, ws, hs, self.db_controller)
         self.patient_frame = PatientFrame(self.root, ws, hs, self.db_controller)
         self.medical_record_frame = MedicalRecordFrame(self.root, ws, hs, self.db_controller)
+        self.back_up_frame = BackUpFrame(self.root, ws, hs, self.db_controller)
 
         # Add back and next frames for each applicable frames created in last step.
         # From Login Frame we can go next to:
@@ -90,9 +92,12 @@ class FrameController:
 
         # From Entry Frame we can go next to:
         # Patient frame to check the patient details.
+        # Patient registration frame to add new patient.
+        # back up frame to back database data to gDrive.
         # We can go back to login frame
         self.entry_frame.frame.add_next_frame(self.patient_frame)
         self.entry_frame.frame.add_next_frame(self.patient_registration_frame)
+        self.entry_frame.frame.add_next_frame(self.back_up_frame)
         self.entry_frame.frame.add_back_frame(self.login_frame)
 
         # From Patient Registration Frame we don't go next to any other frame:
@@ -113,5 +118,10 @@ class FrameController:
         # We can go back to login frame or patient frame
         self.medical_record_frame.frame.add_back_frame(self.login_frame)
         self.medical_record_frame.frame.add_back_frame(self.patient_frame)
+
+        # From Back Up Frame we don't go anywhere next to anywhere
+        # We can go back to entry frame or log out.
+        self.back_up_frame.frame.add_back_frame(self.login_frame)
+        self.back_up_frame.frame.add_back_frame(self.entry_frame)
 
         print("FrameController:Init: Frame Controller created successfully")

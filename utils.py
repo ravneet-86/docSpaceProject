@@ -1,7 +1,9 @@
 import tkinter as tk
 import re
 from constant import *
-
+from datetime import datetime
+import glob
+import traceback
 
 def validate_email_address(email_address):
     regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
@@ -111,6 +113,7 @@ def encode_single_value(multi_values, deliminator=','):
         if idx + 1 != len(multi_values):
             encoded_str += deliminator
         idx += 1
+
     return encoded_str
 
 
@@ -131,3 +134,58 @@ def decode_single_value(medicine_info_string, deliminator=','):
     curr_info_str = ""
 
     return info_list
+
+
+# Function to get the system time stamp date + time (without ms granularity)
+def get_time_stamp():
+    return datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
+
+
+# Function to get the table name for the csv file information table
+def get_csv_file_info_table_name(base_table_name):
+    return base_table_name + CSV_FILE_INFO_STRING
+
+
+# Function to create the file name for the csv file information table
+# Each csv file is directly linked to a database table name is on the corresponding database table
+def create_csv_file_name(table_name):
+    return table_name + "_" + get_time_stamp() + ".csv"
+
+
+# valid DOB is of format YYYY-MM-DD
+def validate_date_field(date):
+
+    error_msg = ""
+    if date is None:
+        return False, DATE_FIELD_BLANK
+
+    try:
+        date_split_list = date.split('-')
+
+        if len(date_split_list) != 3:
+            print("validate_date_field error validating date ", date)
+            return False, DATE_FIELD_ELEMENTS_MORE_THAN_3
+
+        if len(date_split_list[0]) != 4:
+            return False, DATE_FIELD_YEAR_NOT_VALID
+
+        if len(date_split_list[1]) != 2:
+            return False, DATE_FIELD_MONTH_NOT_VALID
+
+        if len(date_split_list[2]) != 2:
+            return False, DATE_FIELD_DAY_NOT_VALID
+
+        if int(date_split_list[0]) < 1900 or int(date_split_list[0]) > 3000:
+            return False, DATE_FIELD_YEAR_INVALID_VALUE
+
+        if int(date_split_list[1]) < 1 or int(date_split_list[1]) > 12:
+            return False, DATE_FIELD_MONTH_INVALID_VALUE
+
+        if int(date_split_list[2]) < 1 or int(date_split_list[2]) > 31:
+            return False, DATE_FIELD_DAY_INVALID_VALUE
+
+        return True, ""
+    except Exception as e:
+        print("validate_date_field error validating date ", date, " exception ", e)
+        print(traceback.format_exc())
+        return False, DATE_FIELD_PROCESSING_ERROR

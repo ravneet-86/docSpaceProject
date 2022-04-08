@@ -40,6 +40,7 @@ class EntryFrame:
                 self.doctor_name_label.config(text=doctor_name)
                 if full_reload:
                     self.patient_name_entry.delete(0, 'end')
+                    self.search_result_list_box.delete(0, tk.END)
         except Exception as e:
             print("EntryFrame::frame_reload:: Exception loading doctor info ", e)
 
@@ -48,12 +49,18 @@ class EntryFrame:
     def log_out_event_action(self):
         self.frame.enter_back_frame(1, False)
 
+    def update_doctor_info_event_action(self):
+        messagebox.showinfo(MESSAGE_BOX_TITLE, UNDER_PROGRESS_AVAILABLE_NEXT_REL)
+
     # Enter register patient frame this is at index 2.
     def register_patient_event_action(self):
-        self.frame.enter_next_frame(2, False)
+        self.frame.enter_next_frame(2, True)
 
     def search_patient_event_action(self):
         self.frame.enter_next_frame(1, True)
+
+    def back_up_event_action(self):
+        self.frame.enter_next_frame(3, True)
 
     def get_search_results(self, search_str):
         return self.patient_result_df[(self.patient_result_df.name.str.contains(search_str, regex=True, na=False,
@@ -103,6 +110,8 @@ class EntryFrame:
             self.curr_search_string = input_search_string
         else:
             self.curr_search_string = ""
+            self.search_result_list_box.delete(0, tk.END)
+            return
 
         print("doing search for ", self.curr_search_string, "df ", self.patient_result_df)
 
@@ -184,12 +193,12 @@ class EntryFrame:
         row_idx += 1
 
         tk.Button(field_frame, text=UPDATE_DOC_INFO,
-                  command=lambda: self.frame.enter_back_frame(1, True), font=WIDGET_FONT).grid(
+                  command=lambda: self.update_doctor_info_event_action(), font=WIDGET_FONT).grid(
             row=row_idx, column=1, pady=(0, 30))
         row_idx += 1
 
         tk.Button(field_frame, text=BACK_UP_DATA,
-                  command=lambda: self.frame.enter_back_frame(1, True), font=WIDGET_FONT).grid(
+                  command=lambda: self.back_up_event_action(), font=WIDGET_FONT).grid(
             row=row_idx, column=1, pady=(0, 30))
 
         field_frame.grid(row='1', column='0', pady=(50, 0))

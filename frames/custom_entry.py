@@ -1,6 +1,6 @@
 import tkinter as tk
 
-ENABLE_DEBUG = True
+ENABLE_DEBUG = False
 
 
 class CustomEntry(tk.Entry):
@@ -37,9 +37,9 @@ class CustomEntry(tk.Entry):
                 if ENABLE_DEBUG:
                     print("CustomEntry:check: Cannot process text with length ", len(self.get()),
                           "less than 1 text ", self.get(), " var ", self.var)
-                    # We don't process the text as the value is already empty but still process the callback
-                    # function set during class initialization.
-                    self.callback_fun(self.var)
+                # We don't process the text as the value is already empty but still process the callback
+                # function set during class initialization.
+                self.callback_fun(self.var)
                 return
 
             # Check if alphabets are allowed, every time check the latest element
@@ -83,6 +83,6 @@ class CustomEntry(tk.Entry):
     def get_text(self):
         return self.get().strip()
 
-    # Get the text for this Entry
+    # Set the text for this Entry
     def set_text(self, text):
         self.var.set(text)

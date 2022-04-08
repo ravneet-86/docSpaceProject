@@ -5,7 +5,7 @@ from frames.custom_text import CustomText
 from constant import *
 from utils import *
 from global_app_data import GlobalAppData
-from datetime import datetime
+import datetime
 from tkinter import messagebox
 
 '''
@@ -64,11 +64,16 @@ class MedicalRecordFrame:
     # Function which should be called whenever we enter this frame
     def frame_reload(self, full_reload):
         self.set_patient_info()
-
+        print("current medical record ", GlobalAppData.get_curr_medical_record())
         if GlobalAppData.get_curr_medical_record() is not None:
             self.set_medical_record(GlobalAppData.get_curr_medical_record())
-            # Reset the data to None so that i can't be used again.
+            # Reset the data to None so that it can't be used again.
             GlobalAppData.set_curr_medical_record(None)
+        elif full_reload:
+            self.set_medical_record(MEDICAL_RECORD_RESET_LIST)
+
+            self.next_date_entry.set_text((datetime.datetime.now() + datetime.timedelta(days=15)).
+                                          strftime("%Y-%m-%d"))  # 'next_visit_date'
         try:
             # Load the Doctor Name for Global app data.
             error_msg, doctor_name = self.db_controller.db_get_doctor_name()
@@ -83,7 +88,8 @@ class MedicalRecordFrame:
             print("MedicalRecordFrame::frame_reload:: Exception loading doctor info ", e)
 
     def set_medical_record(self, medical_record):
-        self.patient_id_entry.set_text(medical_record[MEDICAL_RECORD_TABLE_ID_INDEX])
+        # Patient id is already set by the patient info
+        # self.patient_id_entry.set_text(medical_record[MEDICAL_RECORD_TABLE_ID_INDEX])
         self.record_date_entry.set_text(medical_record[MEDICAL_RECORD_TABLE_RECORD_DATE_INDEX])
         self.case_type_var.set(medical_record[MEDICAL_RECORD_TABLE_CASE_TYPE_INDEX])
         self.patient_symptoms_entry.set_text(medical_record[MEDICAL_RECORD_TABLE_SYMPTOMS_INDEX])
@@ -100,9 +106,11 @@ class MedicalRecordFrame:
         self.phy_general_entry[6].set_text(medical_record[MEDICAL_RECORD_TABLE_ADDICTIONS_INDEX])  # 'addiction'
         self.phy_general_entry[7].set_text(medical_record[MEDICAL_RECORD_TABLE_DESIRES_INDEX])  # 'desires'
         self.phy_general_entry[8].set_text(medical_record[MEDICAL_RECORD_TABLE_AVERSIONS_INDEX])  # 'aversions'
-        self.phy_general_entry[9].set_text(medical_record[MEDICAL_RECORD_TABLE_THERMAL_REACTION_INDEX])  # 'thermal_reaction'
+        self.phy_general_entry[9].set_text(
+            medical_record[MEDICAL_RECORD_TABLE_THERMAL_REACTION_INDEX])  # 'thermal_reaction'
         self.phy_general_entry[10].set_text(medical_record[MEDICAL_RECORD_TABLE_ALLERGY_INDEX])  # 'allergy'
-        self.phy_general_entry[11].set_text(medical_record[MEDICAL_RECORD_TABLE_MENTAL_SYMPTOMS_INDEX])  # 'mental_symptoms'
+        self.phy_general_entry[11].set_text(
+            medical_record[MEDICAL_RECORD_TABLE_MENTAL_SYMPTOMS_INDEX])  # 'mental_symptoms'
         self.phy_char_entry[0].set_text(medical_record[MEDICAL_RECORD_TABLE_BACK_INDEX])  # 'back'
         self.phy_char_entry[1].set_text(medical_record[MEDICAL_RECORD_TABLE_CHEST_INDEX])  # 'chest'
         self.phy_char_entry[2].set_text(medical_record[MEDICAL_RECORD_TABLE_EAR_INDEX])  # 'ear'
@@ -117,14 +125,18 @@ class MedicalRecordFrame:
         self.phy_char_entry[11].set_text(medical_record[MEDICAL_RECORD_TABLE_TONGUE_INDEX])  # 'tongue'
         self.history_entry[0].set_text(medical_record[MEDICAL_RECORD_TABLE_PAST_HISTORY_INDEX])  # 'past_history'
         self.history_entry[1].set_text(medical_record[MEDICAL_RECORD_TABLE_FAMILY_HISTORY_INDEX])  # 'family_history'
-        self.history_entry[2].set_text(medical_record[MEDICAL_RECORD_TABLE_MENSTRUAL_HISTORY_INDEX])  # 'menstrual_history'
-        self.patient_investigation_entry.set_text(medical_record[MEDICAL_RECORD_TABLE_INVESTIGATION_INDEX])  # 'Investigation'
+        self.history_entry[2].set_text(
+            medical_record[MEDICAL_RECORD_TABLE_MENSTRUAL_HISTORY_INDEX])  # 'menstrual_history'
+        self.patient_investigation_entry.set_text(
+            medical_record[MEDICAL_RECORD_TABLE_INVESTIGATION_INDEX])  # 'Investigation'
         self.set_medicine_info_list(0, medical_record[MEDICAL_RECORD_TABLE_MEDICINE_INDEX])  # 'medicine'
         self.set_medicine_info_list(1, medical_record[MEDICAL_RECORD_TABLE_DOSE_INDEX])  # dose
         self.set_medicine_info_list(2, medical_record[MEDICAL_RECORD_TABLE_POTENCY_INDEX])  # potency
         self.set_medicine_info_list(3, medical_record[MEDICAL_RECORD_TABLE_DAYS_INDEX])  # days
         self.next_date_entry.set_text(medical_record[MEDICAL_RECORD_TABLE_NEXT_VISIT_INDEX])  # 'next_visit_date'
-        self.set_medicine_info_list(4, medical_record[MEDICAL_RECORD_TABLE_AMOUNT_INDEX])  # 'amount'
+        amount = self.set_medicine_info_list(4, medical_record[MEDICAL_RECORD_TABLE_AMOUNT_INDEX], True)  # 'amount'
+        self.total_amount_entry.set_text(str(amount))
+        # set total amount from all the medicine amounts.
 
     # Enter the first back frame which is the login frame on log out don't do full reload, as we
     # want user name password to remain filled.
@@ -136,7 +148,7 @@ class MedicalRecordFrame:
         self.frame.enter_back_frame(2, False)
 
     def generate_prescription_event_action(self):
-        print("generate")
+        messagebox.showinfo(MESSAGE_BOX_TITLE, UNDER_PROGRESS_AVAILABLE_NEXT_REL)
 
     def set_patient_info(self):
         patient_details = GlobalAppData.get_curr_selected_patient()
@@ -150,27 +162,57 @@ class MedicalRecordFrame:
         self.patient_occ_entry.set_text(patient_details[PATIENT_INFO_OCCUPATION_INDEX])
         self.patient_contact_entry.set_text(patient_details[PATIENT_INFO_CONTACT_NO_INDEX])
 
-    def get_medicine_info_list(self, index):
+    def get_medicine_info_list(self, index, is_amount=False):
         info_list = []
+        amount = 0
         for i in range(NUM_OF_MEDICAL_INFO_ENTRIES):
             info_list.append(self.medicine_info_entry[index].get_text())
             index += len(MEDICINE_INFO_PARAMS)
-        return encode_single_value(info_list, ',')
 
-    def set_medicine_info_list(self, index, medicine_info_string):
-        info_list = decode_single_value(medicine_info_string, ',')
+            if is_amount:
+                amount = self.add_total_amount(amount, info_list[i])
 
+        print(info_list)
+        return encode_single_value(info_list, DELIMINATOR_ENCODE_MEDICAL_RECORD_VAL), amount
+
+    def add_total_amount(self, amount, value):
+        try:
+            if 0 != len(value):
+                amount += int(value)
+            return amount
+        except Exception as e:
+            print("set_medicine_info: Error calculating total amount ", value,
+                  " exception ", e)
+            return 0
+
+    def set_medicine_info_list(self, index, medicine_info_string, is_amount=False):
+        info_list = decode_single_value(medicine_info_string, DELIMINATOR_ENCODE_MEDICAL_RECORD_VAL)
+
+        amount = 0
         # a good to have check, we should always follow this.
         if None != info_list and len(info_list) == NUM_OF_MEDICAL_INFO_ENTRIES:
             for i in range(NUM_OF_MEDICAL_INFO_ENTRIES):
                 self.medicine_info_entry[index].set_text(info_list[i])
+                if is_amount:
+                    amount = self.add_total_amount(amount, info_list[i])
+
                 index += len(MEDICINE_INFO_PARAMS)
         else:
             print("medical_record_frame::set_medicine_info_list list mismatch for index " + str(index) +
                   " info list ", info_list)
+            for i in range(NUM_OF_MEDICAL_INFO_ENTRIES):
+                self.medicine_info_entry[index + i].set_text("")
+
+        return amount
 
     # Function will save the medical record in the data base and generates the prescription.
     def save_medical_record_event_action(self):
+        medicine = self.get_medicine_info_list(0)  # 'medicine'
+        dose = self.get_medicine_info_list(1)  # dose
+        potency = self.get_medicine_info_list(2)  # potency
+        days = self.get_medicine_info_list(3)  # days
+        amount = self.get_medicine_info_list(4, True)  # amount
+
         values = [self.patient_id_entry.get_text(),
                   self.record_date_entry.get_text(),
                   self.case_type_var.get(),
@@ -207,12 +249,12 @@ class MedicalRecordFrame:
                   self.history_entry[1].get_text(),  # 'family_history'
                   self.history_entry[2].get_text(),  # 'menstrual_history'
                   self.patient_investigation_entry.get_text(),  # 'Investigation'
-                  self.get_medicine_info_list(0),  # 'medicine'
-                  self.get_medicine_info_list(1),  # dose
-                  self.get_medicine_info_list(2),  # potency
-                  self.get_medicine_info_list(3),  # days
+                  medicine[0],  # 'medicine'
+                  dose[0],  # dose
+                  potency[0],  # potency
+                  days[0],  # days
                   self.next_date_entry.get_text(),  # 'next_visit_date'
-                  self.get_medicine_info_list(4),  # 'amount'
+                  amount[0],  # 'amount'
                   ]
         error_msg = self.db_controller.db_save_patient_medical_record(values)
 
@@ -221,6 +263,7 @@ class MedicalRecordFrame:
             messagebox.showerror(ERROR_BOX_TITLE, error_msg)
         else:
             messagebox.showinfo(MESSAGE_BOX_TITLE, MEDICAL_RECORD_SAVED_SUCCESS)
+            self.total_amount_entry.set_text(str(amount[1]))
 
     def create_physical_label_frame(self, phy_char_entry, label_str, label_params, f_r_idx, num_col=4, reps=1):
 
@@ -545,7 +588,7 @@ class MedicalRecordFrame:
                                              font=WIDGET_FONT,
                                              state='disabled')
         # datetime object containing current date and time
-        self.record_date_entry.set_text(datetime.now().strftime("%Y-%m-%d"))
+        self.record_date_entry.set_text(datetime.datetime.now().strftime("%Y-%m-%d"))
         self.record_date_entry.grid(row=0, column=c_idx, padx=(0, 10))
         c_idx += 1
 
@@ -555,11 +598,12 @@ class MedicalRecordFrame:
 
         self.next_date_entry = CustomEntry(end_frame, ENTRY_MAX_LEN_10, alpha=False,
                                            digit=True,
-                                           special_char=False, space_allowed=True, width=10,
+                                           special_char=True, space_allowed=True, width=10,
                                            font=WIDGET_FONT
                                            )
-        # TODO: Add 15 days to the current date
-        self.next_date_entry.set_text(datetime.now().strftime("%Y-%m-%d"))
+
+        self.next_date_entry.set_text((datetime.datetime.now() + datetime.timedelta(days=15)).
+                                      strftime("%Y-%m-%d"))
         self.next_date_entry.grid(row=0, column=c_idx, padx=(0, 10))
         c_idx += 1
 

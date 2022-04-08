@@ -87,6 +87,12 @@ MEDICAL_RECORD_MEDICINES = "Medicines: "
 
 MEDICAL_RECORD_SYMPTOMS = "Symptoms: "
 
+DEVELOPER_INFO_EMAIL = "Email: ravreet.tech.ino@gmail.com"
+DEVELOPER_INFO_MOBILE = "Mobile: 8297192121"
+APP_RELEASE_VERSION = "version: rel-1.0"
+
+UNDER_PROGRESS_AVAILABLE_NEXT_REL = "Under development, will be available in next release."
+
 ##################################################################
 #          DATABASE Constants                                    #
 ##################################################################
@@ -103,7 +109,7 @@ ERROR_PASSWORD_NOT_MATCHING = "Entered Password does not match\nPlease check the
 ERROR_CHECKING_EMAIL_ADDRESS = "Error Checking Email Address in Database\nPlease Contact the Developer or Try again."
 ERROR_EMAIL_USER_NOT_EXIST = "Email/User does not exist in Database\nPlease register and try again."
 ERROR_DOCTOR_INFO_NOT_PRESENT = "Doctor Information not present\nPlease log out and try logging in again."
-EMAIL_ADDRESS_ALREADY_EXIST = "Entered Email is already used\nPlease use different Email or"\
+EMAIL_ADDRESS_ALREADY_EXIST = "Entered Email is already used\nPlease use different Email or" \
                               "\nTry login with this Email, Use Forgot password if required"
 ERROR_CREATING_TABLE = "Unable to create Database\nPlease Contact Developer or Try again."
 ERROR_INSERTING_TABLE = "Unable to register User in Database\nPlease Contact Developer or Try again."
@@ -127,7 +133,8 @@ create table doctor_info (
 							contact_no varchar(12) not null,
 							mobile_no varchar(10) not null,
 							clinic_name varchar(20) not null,
-							clinic_address varchar(50) not null
+							clinic_address varchar(50) not null,
+							index (name, email)
 							);
 '''
 ##################################################################
@@ -157,7 +164,8 @@ CREATE_TABLE_PATIENT_INFO_STRING = ''' (
                             city varchar(10) not null,
                             martial_status varchar(10) not null,
                             occupation varchar(20) not null,
-                            dob date not null
+                            dob date not null,
+                            index (name, city, occupation)
                         );'''
 PATIENT_INFO_COL = "(name, gender, age, contact_no, address, city, martial_status, occupation, dob)"
 
@@ -173,7 +181,7 @@ PATIENT_INFO_TABLE_OCCU_COL_NAME = 'occupation'
 PATIENT_INFO_TABLE_DOB_COL_NAME = 'dob'
 
 PATIENT_INFO_TYPE_STRING = "_patient_info"
-
+CSV_FILE_INFO_STRING = "_file_i"
 PATIENT_INFO_ID_INDEX = 0
 PATIENT_INFO_NAME_INDEX = 1
 PATIENT_INFO_GENDER_INDEX = 2
@@ -191,11 +199,11 @@ CREATE_TABLE_MEDICAL_RECORD_STRING = ''' (
                             patient_id int not null,
                             record_date date not null,
                             case_type varchar(2) not null,
-                            symptoms varchar(50) not null,
-                            symptoms_agg_by varchar(50) not null,
+                            symptoms varchar(200) not null,
+                            symptoms_agg_by varchar(100) not null,
                             symptoms_ameol_by varchar(50) not null,
                             symptoms_since varchar(50) not null,
-                            present_complains varchar(50) not null,
+                            present_complains varchar(200) not null,
                             appetite varchar(50) not null,
                             thirst varchar(50) not null,
                             urine varchar(50) not null,
@@ -223,14 +231,15 @@ CREATE_TABLE_MEDICAL_RECORD_STRING = ''' (
                             past_history varchar(50) not null,
                             family_history varchar(50) not null,
                             menstrual_history varchar(50) not null,
-                            Investigation varchar(50) not null,
+                            Investigation varchar(200) not null,
                             medicine varchar(160) not null,
                             dose varchar(100) not null,
                             potency varchar(80) not null,
                             days varchar(80) not null,
                             next_visit_date date not null,
                             amount varchar(80) not null,
-                            primary key(patient_id, record_date)
+                            primary key(patient_id, record_date),
+                            index (patient_id, record_date, symptoms, Investigation)
                         );'''
 MEDICAL_RECORD_TYPE_STRING = "_medical_record"
 
@@ -278,48 +287,48 @@ MEDICAL_RECORD_TABLE_NEXT_VISIT_DATE_COL_NAME = 'next_visit_date'
 MEDICAL_RECORD_TABLE_AMOUNT_COL_NAME = 'amount'
 
 MEDICAL_COL_NAME_LIST = [MEDICAL_RECORD_TABLE_ID_COL_NAME,
-MEDICAL_RECORD_TABLE_RECORD_DATE_COL_NAME,
-MEDICAL_RECORD_TABLE_CASE_TYPE_COL_NAME,
-MEDICAL_RECORD_TABLE_SYMPTOMS_COL_NAME,
-MEDICAL_RECORD_TABLE_SYMPTOMS_AGG_BY_COL_NAME,
-MEDICAL_RECORD_TABLE_SYMPTOMS_AMEOL_BY_COL_NAME,
-MEDICAL_RECORD_TABLE_SYMPTOMS_SINCE_COL_NAME,
-MEDICAL_RECORD_TABLE_PRESENT_COMPLAINS_COL_NAME,
-MEDICAL_RECORD_TABLE_APPETITE_COL_NAME,
-MEDICAL_RECORD_TABLE_THIRST_COL_NAME,
-MEDICAL_RECORD_TABLE_URINE_COL_NAME,
-MEDICAL_RECORD_TABLE_STOOL_COL_NAME,
-MEDICAL_RECORD_TABLE_SLEEP_COL_NAME,
-MEDICAL_RECORD_TABLE_PERSPIRATION_COL_NAME,
-MEDICAL_RECORD_TABLE_ADDICTIONS_COL_NAME,
-MEDICAL_RECORD_TABLE_DESIRES_COL_NAME,
-MEDICAL_RECORD_TABLE_AVERSIONS_COL_NAME,
-MEDICAL_RECORD_TABLE_THERMAL_REACTION_COL_NAME,
-MEDICAL_RECORD_TABLE_ALLERGY_COL_NAME,
-MEDICAL_RECORD_TABLE_MENTAL_SYMPTOMS_COL_NAME,
-MEDICAL_RECORD_TABLE_BACK_COL_NAME,
-MEDICAL_RECORD_TABLE_CHEST_COL_NAME,
-MEDICAL_RECORD_TABLE_EAR_COL_NAME,
-MEDICAL_RECORD_TABLE_EYE_COL_NAME,
-MEDICAL_RECORD_TABLE_FACE_COL_NAME,
-MEDICAL_RECORD_TABLE_HEAD_COL_NAME,
-MEDICAL_RECORD_TABLE_LIPS_COL_NAME,
-MEDICAL_RECORD_TABLE_MOUTH_COL_NAME,
-MEDICAL_RECORD_TABLE_NOSE_COL_NAME,
-MEDICAL_RECORD_TABLE_TEETH_COL_NAME,
-MEDICAL_RECORD_TABLE_THROAT_COL_NAME,
-MEDICAL_RECORD_TABLE_TONGUE_COL_NAME,
-MEDICAL_RECORD_TABLE_PAST_HISTORY_COL_NAME,
-MEDICAL_RECORD_TABLE_FAMILY_HISTORY_COL_NAME,
-MEDICAL_RECORD_TABLE_MENSTRUAL_HISTORY_COL_NAME,
-MEDICAL_RECORD_TABLE_INVESTIGATION_COL_NAME,
-MEDICAL_RECORD_TABLE_MEDICINE_COL_NAME,
-MEDICAL_RECORD_TABLE_DOSE_COL_NAME,
-MEDICAL_RECORD_TABLE_POTENCY_COL_NAME,
-MEDICAL_RECORD_TABLE_DAYS_COL_NAME,
-MEDICAL_RECORD_TABLE_NEXT_VISIT_DATE_COL_NAME,
-MEDICAL_RECORD_TABLE_AMOUNT_COL_NAME
-]
+                         MEDICAL_RECORD_TABLE_RECORD_DATE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_CASE_TYPE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_SYMPTOMS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_SYMPTOMS_AGG_BY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_SYMPTOMS_AMEOL_BY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_SYMPTOMS_SINCE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_PRESENT_COMPLAINS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_APPETITE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_THIRST_COL_NAME,
+                         MEDICAL_RECORD_TABLE_URINE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_STOOL_COL_NAME,
+                         MEDICAL_RECORD_TABLE_SLEEP_COL_NAME,
+                         MEDICAL_RECORD_TABLE_PERSPIRATION_COL_NAME,
+                         MEDICAL_RECORD_TABLE_ADDICTIONS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_DESIRES_COL_NAME,
+                         MEDICAL_RECORD_TABLE_AVERSIONS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_THERMAL_REACTION_COL_NAME,
+                         MEDICAL_RECORD_TABLE_ALLERGY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_MENTAL_SYMPTOMS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_BACK_COL_NAME,
+                         MEDICAL_RECORD_TABLE_CHEST_COL_NAME,
+                         MEDICAL_RECORD_TABLE_EAR_COL_NAME,
+                         MEDICAL_RECORD_TABLE_EYE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_FACE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_HEAD_COL_NAME,
+                         MEDICAL_RECORD_TABLE_LIPS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_MOUTH_COL_NAME,
+                         MEDICAL_RECORD_TABLE_NOSE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_TEETH_COL_NAME,
+                         MEDICAL_RECORD_TABLE_THROAT_COL_NAME,
+                         MEDICAL_RECORD_TABLE_TONGUE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_PAST_HISTORY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_FAMILY_HISTORY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_MENSTRUAL_HISTORY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_INVESTIGATION_COL_NAME,
+                         MEDICAL_RECORD_TABLE_MEDICINE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_DOSE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_POTENCY_COL_NAME,
+                         MEDICAL_RECORD_TABLE_DAYS_COL_NAME,
+                         MEDICAL_RECORD_TABLE_NEXT_VISIT_DATE_COL_NAME,
+                         MEDICAL_RECORD_TABLE_AMOUNT_COL_NAME
+                         ]
 MEDICAL_RECORD_TABLE_ID_INDEX = 0
 MEDICAL_RECORD_TABLE_RECORD_DATE_INDEX = 1
 MEDICAL_RECORD_TABLE_CASE_TYPE_INDEX = 2
@@ -405,3 +414,45 @@ MEDICAL_RECORD_INFO_COL = '''(patient_id,
                             days,
                             next_visit_date,
                             amount)'''
+
+CREATE_TABLE_CSV_FILE_INFO_STRING = ''' (
+                            insert_id int not null primary key auto_increment,
+                            file_name char(200) not null,
+                            creation_date date not null,
+                            is_backed_up bool not null,
+                            back_up_creation_date_time date,
+                            file_size int,
+                            index (insert_id));
+                            '''
+
+FILE_INFO_TABLE_COL_STRING = "(file_name, creation_date, is_backed_up, back_up_creation_date_time, file_size)"
+FILE_INFO_TABLE_INSERT_ID_COL_NAME = "insert_id"
+FILE_INFO_TABLE_FILE_NAME_COL_INDEX = 1
+FILE_INFO_TABLE_COL_STRING_FIRST_THREE = "(file_name, creation_date, is_backed_up)"
+DELIMINATOR_ENCODE_MEDICAL_RECORD_VAL = "|"
+MAX_CSV_FILE_SIZE_BYTES = 25 * 1024 * 1024
+
+DATE_FIELD_BLANK = "Date Field is blank, please enter valid value and try again."
+DATE_FIELD_PROCESSING_ERROR = "Error processing Date field, it should have Year(YYYY) Month(MM) " \
+                              "Day(DD) separated by a -"
+DATE_FIELD_ELEMENTS_MORE_THAN_3 = "Date field should only have Year(YYYY) Month(MM) Day(DD) " \
+                                  "separated by a -"
+DATE_FIELD_YEAR_NOT_VALID = "Date field Year(YYYY) is not valid."
+DATE_FIELD_MONTH_NOT_VALID = "Date field Month(MM) is not valid."
+DATE_FIELD_DAY_NOT_VALID = "Date field Day(DD) is not valid."
+DATE_FIELD_YEAR_INVALID_VALUE = "Date field year(YYYY) has invalid value."
+DATE_FIELD_MONTH_INVALID_VALUE = "Date field Month(MM) has invalid value."
+DATE_FIELD_DAY_INVALID_VALUE = "date field Day(DD) has invalid value."
+
+
+import datetime
+
+MEDICAL_RECORD_RESET_LIST = []
+for col in range(len(MEDICAL_COL_NAME_LIST)):
+    if col == MEDICAL_RECORD_TABLE_RECORD_DATE_INDEX:
+        MEDICAL_RECORD_RESET_LIST.append(datetime.datetime.now().strftime("%Y-%m-%d"))
+    if col == MEDICAL_RECORD_TABLE_NEXT_VISIT_DATE_COL_NAME:
+        MEDICAL_RECORD_RESET_LIST.append((datetime.datetime.now() + datetime.timedelta(days=15)).
+                                         strftime("%Y-%m-%d"))
+    else:
+        MEDICAL_RECORD_RESET_LIST.append("")

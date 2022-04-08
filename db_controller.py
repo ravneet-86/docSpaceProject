@@ -6,6 +6,8 @@ from utils import *
 from patient_details import PatientDetails
 import pandas as pd
 from global_app_data import *
+from datetime import datetime
+from txHandlers.csv_fileHandler import CsvHandler
 
 ENABLE_DB_DEBUG = True
 
@@ -107,6 +109,24 @@ class DbController:
                   len(values))
             print("Sql statement ", sql, "exception: ", e)
             return False
+
+    # Function to get the last inserted row in the given table
+    # Note this will work only for table which has single auto increment primary key.
+    def _db_get_last_inserted_row_m2(self, table, key_id):
+        try:
+            sql = "select * from " + DB_NAME + "." + table + " where " + key_id + "=(select MAX(" + key_id +")" \
+                  + " from " + DB_NAME + "." + table + ");"
+
+            if ENABLE_DB_DEBUG:
+                print("_db_get_last_inserted_row_m2:_db_get_rows Running select query ", sql)
+            self.db_cursor.execute(sql)
+            rows = self.db_cursor.fetchall()
+            return True, rows
+
+        except Exception as e:
+            print("DbController:_db_get_last_inserted_row: Failed to get rows for table ", DB_NAME + "." + table)
+            print("Sql statement ", sql, "exception: ", e)
+            return False, None
 
     # Function to get the last inserted row in the given table
     # Note this will work only for table which has single auto increment primary key.
@@ -214,6 +234,59 @@ class DbController:
             print("Sql statement ", sql, " where params ", like_params, "exception: ", e)
             return False, None
 
+    def _db_get_csv_file_name(self, table_name):
+        # Get the last record added in the csv file table. At this point we expect atleast
+        # one record to be present. As a record is added if we are successfully create the table.
+        status, rows = self._db_get_last_inserted_row_m2(table_name, FILE_INFO_TABLE_INSERT_ID_COL_NAME)
+        print(rows)
+        if status is True and len(rows) != 0:
+            return rows[0][FILE_INFO_TABLE_FILE_NAME_COL_INDEX]
+        else:
+            print("dbController::_db_get_csv_file_name Cannot get csv file from the DB ", table_name)
+            return None
+
+    def _db_update_csv_file(self, table_identifier, values):
+
+        try:
+            csv_file = None
+            is_csv_file_update_required = False
+
+            if table_identifier == MEDICAL_RECORD_TYPE_STRING:
+                if CsvHandler.is_new_csv_file_needed(self.medical_record_csv_file, table_identifier):
+                    csv_file = self.create_csv_file_info_table_and_file(self.medical_record_table, False)
+
+                if csv_file is None:
+                    csv_file = self.medical_record_csv_file
+                else:
+                    self.medical_record_csv_file = csv_file
+                    is_csv_file_update_required = True
+            elif table_identifier == PATIENT_INFO_TYPE_STRING:
+                if CsvHandler.is_new_csv_file_needed(self.patient_info_csv_file, table_identifier):
+                    csv_file = self.create_csv_file_info_table_and_file(self.patient_info_table, False)
+
+                if csv_file is None:
+                    csv_file = self.patient_info_csv_file
+                else:
+                    self.patient_info_csv_file = csv_file
+                    is_csv_file_update_required = True
+            else:
+                # This is the case of DOCTOR INFO.
+                if CsvHandler.is_new_csv_file_needed(self.doctor_info_csv_file, table_identifier):
+                    csv_file = self.create_csv_file_info_table_and_file(self.doctor_info_table, False)
+
+                if csv_file is None:
+                    csv_file = self.doctor_info_csv_file
+                else:
+                    self.doctor_info_csv_file = csv_file
+                    is_csv_file_update_required = True
+
+            if csv_file is not None:
+                CsvHandler.save_record_to_csv_file(csv_file, table_identifier, values,
+                                                   is_csv_file_update_required)
+        except Exception as e:
+            print("Exception::_db_update_csv_file in updating csv ", table_identifier, " values ", values,
+                  " exception ", e)
+
     # Below are the interface functions which are accessed by the Application frames
     # to Query or Get Data already Queried from DB.
     # Function to check if DB is connected successfully or not after object creation.
@@ -253,8 +326,18 @@ class DbController:
                     self.medical_record_table = get_table_name_from_email(email,
                                                                           MEDICAL_RECORD_TYPE_STRING)
 
+                    self.patient_info_csv_file = self._db_get_csv_file_name(
+                                                 get_csv_file_info_table_name(self.patient_info_table))
+                    self.medical_record_csv_file = self._db_get_csv_file_name(
+                                                 get_csv_file_info_table_name(self.medical_record_table))
+                    self.doctor_info_csv_file = self._db_get_csv_file_name(
+                                                get_csv_file_info_table_name(DOCTOR_INFO_TABLE))
+
+                    print("CSV File name ", self.patient_info_csv_file, " - ", self.medical_record_csv_file)
+
                     return error_msg
-            # Email is present as non zero rows are returned, but password didn't match.
+
+            # Email is present as non-zero rows are returned, but password didn't match.
             error_msg = ERROR_PASSWORD_NOT_MATCHING
 
         return error_msg
@@ -318,8 +401,43 @@ class DbController:
             # In case of any Error, delete the table created in step 1 and step 2.
             self._db_delete_table(patient_info_table)
             self._db_delete_table(medical_record_table)
+        else:
+            # step 4: Now create the corresponding CSV File info tables.
+            self.create_csv_file_info_table_and_file(patient_info_table, True)
+            self.create_csv_file_info_table_and_file(medical_record_table, True)
 
+            # DOCTOR INFO CSV table is already created by the Admin and also first csv file details are
+            # already inserted. So just get the csv file name from the table.
+            self.doctor_info_csv_file = self._db_get_csv_file_name(get_csv_file_info_table_name(DOCTOR_INFO_TABLE))
+
+            # DB table is already created by the Administrator update an entry in this table
+            self._db_update_csv_file(DOCTOR_INFO_TABLE, values)
         return error_msg
+
+    def create_csv_file_info_table_and_file(self, base_table_name, create_table_needed):
+        # We don't check the return status because even if this fails we still go ahead
+        # as we have already registered the user.
+        csv_file_name = ""
+        values = []
+        try:
+            file_info_table_name = get_csv_file_info_table_name(base_table_name)
+
+            status = True
+            if create_table_needed:
+                table_sql = file_info_table_name + CREATE_TABLE_CSV_FILE_INFO_STRING
+                status = self._db_create_table(table_sql)
+
+            if status:
+                # Now create CSV files and add that into the File info table
+                csv_file_name = create_csv_file_name(file_info_table_name)
+                values = [csv_file_name, datetime.now().strftime("%Y-%m-%d"), False]
+                self._db_insert(file_info_table_name, FILE_INFO_TABLE_COL_STRING_FIRST_THREE, values)
+                return csv_file_name
+        except Exception as e:
+            print("db_controller::create_csv_file_info_table_and_file failed to create CSV file table ",
+                  e, " base table ", base_table_name, " sql table ", table_sql,
+                  " csv file name ", csv_file_name, " values ", values)
+            return None
 
     # Method to get all the patient details starting from input string.
     def db_get_all_patient(self, like_str):
@@ -356,11 +474,16 @@ class DbController:
         if not status:
             error_msg = ERROR_GETTING_MEDICAL_RECORDS
 
-        print ("get_all_medical_records records ", rows)
+        print("get_all_medical_records records ", rows)
         return error_msg, rows
 
     def db_save_patient_medical_record(self, values):
-        # First check if given medical record already exists or not
+        # Check if date is valid or not
+        status, error_msg = validate_date_field(values[MEDICAL_RECORD_TABLE_NEXT_VISIT_INDEX])
+        if not status:
+            return error_msg
+
+        # Check if given medical record already exists or not
         where_params = [(MEDICAL_RECORD_TABLE_ID_COL_NAME, values[MEDICAL_RECORD_TABLE_ID_INDEX]),
                         (MEDICAL_RECORD_TABLE_RECORD_DATE_COL_NAME, values[MEDICAL_RECORD_TABLE_RECORD_DATE_INDEX])]
 
@@ -374,6 +497,10 @@ class DbController:
 
             if not status:
                 error_msg = ERROR_UPDATING_MEDICAL_RECORD_TABLE
+            else:
+                # Event if it is an existing record we add a new row in the csv file instead of updating the
+                # current one.
+                self._db_update_csv_file(MEDICAL_RECORD_TYPE_STRING, values)
         else:
             # Insert the data received in the Data base.
             status = self._db_insert(self.medical_record_table, MEDICAL_RECORD_INFO_COL,
@@ -381,7 +508,9 @@ class DbController:
 
             if not status:
                 error_msg = ERROR_INSERTING_MEDICAL_RECORD_TABLE
-
+            else:
+                # Save the medical record in the corresponding csv file.
+                self._db_update_csv_file(MEDICAL_RECORD_TYPE_STRING, values)
         return error_msg
 
     # Function to insert values in the doctor info table for doctor's registration.
@@ -392,11 +521,15 @@ class DbController:
                                  dob_entry):
 
         error_msg = ""
-        # TODO: Convert date into appropriate format, it should be in the format YYYY-MM-DD
+        # Validate date into appropriate format, it should be in the format YYYY-MM-DD
         # dob_entry = "STR_TO_DATE('" + dob_entry + "', '%d-%m-%y')"
         # Form the query and run insert for given table.
         if 0 == len(dob_entry):
             dob_entry = '0000-0-0'
+        else:
+            ret, error_msg = validate_date_field(dob_entry)
+            if not ret:
+                return error_msg
 
         if 0 == len(age_entry):
             age_entry = 0
@@ -412,10 +545,11 @@ class DbController:
         if not status:
             error_msg = ERROR_INSERTING_PATIENT_TABLE
         else:
-            status, rows = self._db_get_last_inserted_row(self.patient_info_table, PATIENT_INFO_TABLE_ID_COL_NAME)
+            status, rows = self._db_get_last_inserted_row(self.patient_info_table,
+                                                          PATIENT_INFO_TABLE_ID_COL_NAME)
 
             if status and 0 != len(rows):
-                print("registered row ",  rows[0])
+                print("registered row ", rows[0])
                 GlobalAppData.set_curr_selected_patient(rows[0])
             else:
                 where_params = [(PATIENT_INFO_TABLE_NAME_COL_NAME, name_entry),
@@ -434,6 +568,9 @@ class DbController:
                 else:
                     print("registered row where ", rows[0])
                     GlobalAppData.set_curr_selected_patient(rows[0])
+
+            # Save patient info in the csv file.
+            self._db_update_csv_file(PATIENT_INFO_TYPE_STRING,  values)
 
         return error_msg
 
@@ -476,9 +613,23 @@ class DbController:
                 print(rows[0])
                 GlobalAppData.set_curr_selected_patient(rows[0])
 
+            # Now add the patient info in the csv file, please note even for same patient we add a new record
+            # instead of searching and updating a current one.
+            self._db_update_csv_file(PATIENT_INFO_TYPE_STRING, values)
+
         return error_msg
 
     # Getter interface functions
+
+    def db_get_patient_info_csv_file(self):
+        return self.patient_info_csv_file
+
+    def db_get_medical_record_info_csv_file(self):
+        return self.medical_record_csv_file
+
+    def db_get_doctor_info_csv_file(self):
+        return self.doctor_info_csv_file
+
     def db_get_doctor_name(self):
         # This function should be called once doctor info is retrieved by the App return error message in
         # case doctor info not present.
@@ -491,9 +642,13 @@ class DbController:
     # Initialize the class data members.
     def __init__(self):
 
+
         self.doctor_info = None
         self.patient_info_table = None
         self.medical_record_table = None
+        self.patient_info_csv_file = None
+        self.medical_record_csv_file = None
+        self.doctor_info_csv_file = None
 
         # List containing any error message encountered during init
         self.error = []
@@ -516,3 +671,22 @@ class DbController:
         except Exception as e:
             print("DbController: Init Exception received while connecting to Database \n", e)
             self.error.append(DB_CONNECTION_ERROR)
+
+    @staticmethod
+    def create_database_dump(name, event):
+        try:
+            file_name = DB_NAME + name + ".sql"
+            dump_cmd = "mysqldump -h " + DB_HOST + " -u " + DB_USER + " -p" + DB_USER_PASSWORD + " " + \
+                       DB_NAME + " > " + pipes.quote(DB_BACKUP_PATH) + "/" + file_name
+            os.system(dump_cmd)
+            import time
+            time.sleep(0.3)
+            GlobalAppData.set_gen_back_up_files_status(True)
+            GlobalAppData.set_gen_back_up_files_name([file_name])
+            event.set()
+            #return True, file_name
+        except Exception as e:
+            print("DbController: Exception while dumping the Database name ", name, "exception ", e)
+            GlobalAppData.set_gen_back_up_files_status(False)
+            GlobalAppData.set_gen_back_up_files_name([None])
+            #return False, None

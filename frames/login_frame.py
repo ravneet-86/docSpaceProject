@@ -4,7 +4,10 @@ from frames.custom_entry import CustomEntry
 from constant import *
 from utils import *
 from tkinter import messagebox
+from txHandlers.csv_fileHandler import CsvHandler
 
+
+#from tkinter import ttk as tk
 '''
                                     Doctor Space Login
                     Please Enter your username(email) and password
@@ -36,6 +39,12 @@ class LoginFrame:
 
         self.password_entry.config(show='*')
         self.show_password.config(text=SHOW_PASSWORD_LABEL)
+
+        # Close any csv file once you enter the login page.
+        CsvHandler.close_csv_file_handlers()
+
+    def forget_password_event_action(self):
+        messagebox.showinfo(MESSAGE_BOX_TITLE, UNDER_PROGRESS_AVAILABLE_NEXT_REL)
 
     # Frame/Page to go once user clicks on login
     def login_event_action(self):
@@ -98,18 +107,20 @@ class LoginFrame:
 
         # Row 3
         tk.Label(self.frame, text=PASSWORD_LABEL, font=WIDGET_FONT).grid(
-                 row=3, column=0, padx=(ws/5, 30))
+                 row=3, column=0, padx=(ws/5, 30), pady=10)
         self.password_entry = CustomEntry(self.frame, ENTRY_MAX_LEN_10, alpha=True, digit=True,
                                           special_char=True, show="*", width=30, font=WIDGET_FONT)
-        self.password_entry.grid(row=3, column=1, columnspan=2)
+        self.password_entry.grid(row=3, column=1, columnspan=2, pady=10)
         self.show_password = tk.Button(self.frame, text=SHOW_PASSWORD_LABEL,
                                        command=lambda: show_password_event_action(
                                        self.password_entry, self.show_password), font=WIDGET_FONT)
 
-        self.show_password.grid(row=3, column=4)
+        self.show_password.grid(row=3, column=4, pady=10)
 
         # Row 4
-        tk.Button(self.frame, text=FORGET_PASSWORD_BUTTON, font=WIDGET_FONT).grid(row=4, column=4)
+        tk.Button(self.frame, text=FORGET_PASSWORD_BUTTON,
+                  command=lambda: self.forget_password_event_action(),
+                  font=WIDGET_FONT).grid(row=4, column=4, pady=10)
 
         # Row 5
         tk.Button(self.frame, text=LOGIN_BUTTON, command=lambda: self.login_event_action(),
@@ -118,4 +129,4 @@ class LoginFrame:
 
         # Row 6
         tk.Button(self.frame, text=REGISTER_BUTTON, command=lambda: self.register_doc_event_action(),
-                  font=WIDGET_FONT).grid(row=6, column=2, sticky='w')
+                  font=WIDGET_FONT).grid(row=6, column=2, sticky='w', pady=20)

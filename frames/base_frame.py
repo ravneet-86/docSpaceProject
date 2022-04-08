@@ -32,7 +32,11 @@ class BaseFrame(tk.Frame):
         except Exception as e:
             print("BaseFrame::enter_next_frame: Out of bound encountered total len",
                   len(self.next_frames), n_idx, " using 0, exception: ", e)
-            self.next_frames[0].grid(row=0, column=0)
+            if not use_pack:
+                self.next_frames[0].grid(row=0, column=0)
+            else:
+                self.next_frames[0].main_frame.pack(fill=tk.BOTH, expand=1)
+            # self.next_frames[0].grid(row=0, column=0)
 
     # Method to go to back frame from this frame.
     def enter_back_frame(self, n_idx, full_reload, use_pack=True):
@@ -51,7 +55,11 @@ class BaseFrame(tk.Frame):
         except Exception as e:
             print("BaseFrame::enter_back_frame: Out of bound encountered total len",
                   len(self.back_frames), n_idx, " using 0, exception: ", e)
-            self.back_frames[0].grid(row=0, column=0)
+            if not use_pack:
+                self.back_frames[0].grid(row=0, column=0)
+            else:
+                self.back_frames[0].main_frame.pack(fill=tk.BOTH, expand=1)
+            #self.back_frames[0].frame.grid(row=0, column=0)
 
     # Method to add the next frame from this frame can go to. There can be multiple next frames.
     def add_next_frame(self, frame):
